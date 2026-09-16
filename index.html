@@ -291,10 +291,20 @@ function startScanner(){
   if(scannerRunning) return;
   if(typeof Html5Qrcode === 'undefined') return;
   html5QrCode = new Html5Qrcode("reader");
-  Html5Qrcode.getCameras().then(cams=>{
-    if(!cams || !cams.length) return;
-    html5QrCode.start(cams[0].id, {fps:10, qrbox:220}, onScanSuccess).then(()=>scannerRunning=true);
-  }).catch(err=>console.error(err));
+  html5QrCode.start(
+    { facingMode: "environment" },
+    {fps:10, qrbox:220},
+    onScanSuccess
+  ).then(()=>scannerRunning=true)
+  .catch(err=>{
+    console.error(err);
+    // fallback: kalau facingMode environment gagal, coba ambil daftar kamera manual
+    Html5Qrcode.getCameras().then(cams=>{
+      if(!cams || !cams.length) return;
+      const backCam = cams.find(c => /back|rear|belakang|environment/i.test(c.label)) || cams[cams.length-1];
+      html5QrCode.start(backCam.id, {fps:10, qrbox:220}, onScanSuccess).then(()=>scannerRunning=true);
+    }).catch(e=>console.error(e));
+  });
 }
 function stopScanner(){
   if(scannerRunning && html5QrCode){
